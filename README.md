@@ -1,2 +1,2 @@
-# codeEvalSolutions
-My solutions for CodeEval problems.
+# ProgramminGPractise
+Problem Solutions from GeekforGeeks and CodeEval.
