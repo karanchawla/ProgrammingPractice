@@ -87,7 +87,75 @@ void insertEnd(struct node** head, int newData)
 	return;
 }
 
+//length of linked list
+// Time Complexity : O(n)
+int getCount(struct node* head)
+{
+    // Base case
+    if (head == NULL)
+        return 0;
+ 
+    return 1 + getCount(head->next);
+}
 
+//Delete a linked list node at a given position
+void deleteNode(struct node** head, int position)
+{
+	if(*head==NULL) return;
+
+	struct node* temp = *head;
+
+	//if head is removed
+	if(position==0)
+	{	
+		*head = temp->next; //change head
+		free(temp); // free old head
+		return;
+	}
+	//else
+	if(position<getCount(*head))
+	{
+		for(int i=0; (temp!=NULL && i<position-1);i++)
+		{
+			temp = temp->next;
+		}	
+	}
+	//temp->next is the node to be deleted
+	struct node* next = temp->next->next;
+
+	free(temp->next);
+
+	temp->next = next;
+}
+
+//swap nodes without swapping data
+void swap(struct node** head, int x, int y)
+{	
+	if(x==y) return;
+
+	struct node* first = *head;
+	
+	struct node* bfirst = first; //before first
+
+	struct node* second = *head;
+	
+	while(first->data!=x)
+	{
+		bfirst = first;
+		first = first->next;
+	}
+
+	while(second->data!=y)
+	{
+		second = second->next;
+	}
+
+	//swapping of three pointers
+	struct node* temp = bfirst->next;
+	first->next = second->next;
+	bfirst->next = second;
+	second->next = temp;
+}
 
 //create a linked list with 3 nodes
 int main(void)
@@ -109,7 +177,9 @@ int main(void)
 	third->data = 3;
 	third->next = NULL;
 	insertEnd(&head,4);
+	//deleteNode(&head, 2);
+	printf("\nCount:%d\n", getCount(head));
+	swap(&head,2,3);
 	printList(head);
-
 	return 0;
 }
