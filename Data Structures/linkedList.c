@@ -3,6 +3,10 @@ Author: Karan Chawla
 Data Structure : Linked List
 */
 
+//To Do:
+// Implement Merge function for two linked lists
+
+
 #include <stdio.h> 
 #include <stdlib.h> 
 
@@ -156,6 +160,23 @@ void swap(struct node** head, int x, int y)
 	bfirst->next = second;
 	second->next = temp;
 }
+
+//function to reverse a linked list
+static void reverse(struct node** head)
+{
+    struct node* prev   = NULL;
+    struct node* current = *head;
+    struct node* next;
+    while (current != NULL)
+    {
+        next  = current->next;  
+        current->next = prev;   
+        prev = current;
+        current = next;
+    }
+    *head = prev;
+}
+
 
 //create a linked list with 3 nodes
 int main(void)
