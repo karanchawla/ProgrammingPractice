@@ -2,6 +2,7 @@
 Karan Chawla
 Data Structure: Stacks
 Array Implementation
+Static but easy implementation
 */
 
 #include <stdio.h>
