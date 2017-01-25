@@ -1,6 +1,6 @@
 /*
 Karan Chawla
-Algorithm: Given an array find the largest sum contiguoius subarray
+Algorithm: Given an array find the largest sum contiguous subarray
 */
 
 #include <stdio.h>
