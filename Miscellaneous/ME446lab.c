@@ -48,6 +48,7 @@ typedef struct PID
 	float Ki;
 }PID;
 
+//wrapping the variables associated with the filter in a struc
 typedef struct vel_filter
 {
 	float theta_old;
@@ -89,17 +90,22 @@ vel_filter filter1 = {0,0,0,0};
 vel_filter filter2= {0,0,0,0};
 vel_filter filter3= {0,0,0,0};
 
-float prev_error1 = 0.0;
-float prev_error2 = 0.0;
-float prev_error3 = 0.0;
+//Creating a structure for the errors
+typedef struct Error
+{
+	float prev_error;
+	float curr_error;
+	float total_error;
+}Error;
 
-float curr_error1 = 0.0;
-float curr_error2 = 0.0;
-float curr_error3 = 0.0;
-
-float total_error1 = 0.0;
-float total_error2 = 0.0;
-float total_error3 = 0.0;
+//Initializing the error values for three joints
+Error jointError[3];
+for (int i = 0; i < 3; ++i)
+{
+	jointError[i].prev_error = 0;
+	jointError[i].curr_error = 0;
+	jointError[i].total_error = 0;
+}
 
 //For the trajectory
 float DesiredValue[3] = {0,0,0};
@@ -109,6 +115,7 @@ float J1 = 0.0167;
 float J2 = 0.03;
 float J3 = 0.0128;
 
+//Standard implementation for the velocity filtering algorithm given in the lab manual
 static inline float velocityFilter(float thetamotor, vel_filter* vel_filter)
 {
 	vel_filter->omega = (thetamotor - vel_filter->theta_old)/0.001;
@@ -122,35 +129,8 @@ static inline float velocityFilter(float thetamotor, vel_filter* vel_filter)
 	return vel_filter->omega;
 }
 
-/*static inline float PIDController(float thetamotor, float theta_desired, float thetamotor_dot, PID *ctrl, float* curr_error, float* prev_error, float *total_error)
-{
-	//Integration error
-	*curr_error = (theta_desired-thetamotor);
-	*total_error = *total_error + (*prev_error + *curr_error)*.001/2;
-	float int_error = *total_error;
-	//Use the PID controller close to desired angles
-	float tau = 0;
-	if(fabs(*curr_error) < 0.2) {
-		tau = ctrl->Kp*(theta_desired-thetamotor) + ctrl->Kd*(-thetamotor_dot) + ctrl->Ki*(int_error);
-	} else {
-		//Use PD controller over everything else
-		*total_error = 0;
-		tau = ctrl->Kp*(theta_desired-thetamotor) + ctrl->Kd*(-thetamotor_dot) + ctrl->Ki*(0);
-	}
-
-	*prev_error = *curr_error;
-
-	//Saturate output torque
-	if(tau>5)
-		return 5.0;
-	else if(tau < -5)
-		return -5.0;
-	else
-		return tau;
-}*/
-
 //Function genrates theta, thetadot and thetaddot for the trajectory*
-/*void trajectoryGenerator(float t)
+void cubicSplineTest(float t)
 {
 	float Coeff1[4] = {0.0, 0.0, 1.5, -1.0};
 	float Coeff2[4] = {-2.0, 6.0, -4.5, 1.0};
@@ -158,24 +138,35 @@ static inline float velocityFilter(float thetamotor, vel_filter* vel_filter)
 	if(t < 1000)
 	{
 		t=t/1000;
-		DesiredValue[0] = Coeff1[0]+Coeff1[1]*t+Coeff1[2]*t*t+Coeff1[3]*t*t*t;
-		DesiredValue[1] = Coeff1[1]+2*Coeff1[2]*t+3*Coeff1[3]*t*t;
-		DesiredValue[2] = 2*Coeff1[2]+6*Coeff1[3]*t;
+		
+		for (int i = 0; i < 3; ++i)
+		{
+			td[i] = Coeff1[0]+Coeff1[1]*t+Coeff1[2]*t*t+Coeff1[3]*t*t*t;
+			tdDot[i] = Coeff1[1]+2*Coeff1[2]*t+3*Coeff1[3]*t*t;
+			tdDoubleDot[i] = 2*Coeff1[2]+6*Coeff1[3]*t;
+		}
+
 	}
 	if( t >=1000 && t <= 2000)
 	{
 		t= t/1000;
-		DesiredValue[0] = Coeff2[0]+Coeff2[1]*t+Coeff2[2]*t*t+Coeff2[3]*t*t*t;
-		DesiredValue[1] = Coeff2[1]+2*Coeff2[2]*t+3*Coeff2[3]*t*t;
-		DesiredValue[2] = 2*Coeff2[2]+6*Coeff2[3]*t;
+		for (int i = 0; i < 3; ++i)
+		{
+			td[i] = Coeff2[0]+Coeff2[1]*t+Coeff2[2]*t*t+Coeff2[3]*t*t*t;
+			tdDot[i] = Coeff2[1]+2*Coeff2[2]*t+3*Coeff2[3]*t*t;
+			tdDoubleDot[i] = 2*Coeff2[2]+6*Coeff2[3]*t;
+		}
 	}
 	if( t > 2000 )
 	{
-			DesiredValue[0] = 0;
-			DesiredValue[1] = 0;
-			DesiredValue[2] = 0;
+		for (int i = 0; i < 3; ++i)
+		{
+			td[i] = 0;
+			tdDot[i] = 0;
+			tdDoubleDot[i] = 0;
+		}
 	}
-}*/
+}
 
 //Inverse kinematics for the arm in 2D plane
 void InverseK(float x, float y, float z, float L, float *td1, float* td2, float* td3)
@@ -191,115 +182,103 @@ void InverseK(float x, float y, float z, float L, float *td1, float* td2, float*
 	*td3 = gamma - beta;
 }
 
-float td1 = 0;
-float td2 = 0;
-float td3 = 0;
+float td[3] = {0,0,0}; //variables for theta desired at t_{n+1}
+float td0[3] = {0,0,0}; //variables for theta desired at t_{n-1}
+float tdn[3] = {0,0,0}; //variables for theta desired at t_{n}
+float tdDot[3] = {0,0,0}; //variables for thetaDot desired at t_{n}
+float tdDoubleDot[3] = {0,0,0}; //variables for thetaDoubleDot desired at t_{n}
 
-float td10 = 0;
-float td20 = 0;
-float td30 = 0;
+float xr0 = 10; //x axis offset
+float y0 = 0; //y axis offset
+float zr0 = 8; //z axis offset
+float Rr0 = 3; //Set radius for trajectory
+float period = 4; //set time period for the trajectory as 4 sec
 
-float td1n = 0;
-float td2n = 0;
-float td3n = 0;
 
-float td1dot = 0;
-float td2dot = 0;
-float td3dot = 0;
-
-float td1ddot = 0;
-float td2ddot = 0;
-float td3ddot = 0;
-
-float xr0 = 10;
-float y0 = 0;
-float zr0 = 8;
-float Rr0 = 3;
-
-//Function to generate the desired trajectory
-static inline void circleTrajectory(float t)
+/*
+Function trajectoryGenerator takes in mycount as its input 
+Updates theta, thetaDot and thetaDoubleDot based on trajectory values
+*/
+static inline void trajectoryGenerator(float t, char c)
 {
+	float time = 0.001*t; //input t is mycount 1000*mycount = 1 sec
+	float phi = 2*PI*time/period; //constant definition
+	float delta = 0.005; //Sampling time period
 
-	float time = t*0.001;
-	float period = 2*PI;
-	float phi = 2*PI*time/period;
-
-	//float T = 10000;
-	float delta = 0.005;
-
-	if( time <= 100*period)
+	if(c=='c') //For circular trajectory
 	{
-		x = xr0 + Rr0 * sin(phi);
-		y = y0;
-		z = zr0 + Rr0 * cos(phi);
+		if( time <= 100*period) //run the trajectory a hundred times
+		{
+			//Sample trajectory at T_n
+			x = xr0 + Rr0 * sin(phi);
+			y = y0;
+			z = zr0 + Rr0 * cos(phi);
 
-		//InverseK(x0, y0, z0, 10.0, &td10, &td20, &td30);
+			//Sample trajectory at T_{n-1}
+			float x0 = xr0 + Rr0* sin(phi - PI*delta*2/period);
+			y0 = 0;
+			float z0 = zr0 + Rr0*cos(phi - PI*delta*2/period);
 
-		InverseK(x, y, z, 10.0, &td1n, &td2n, &td3n);
-		float x0 = xr0 + Rr0* sin(phi - PI*delta*2/period);
-		y0 = 0;
-		float z0 = zr0 + Rr0*cos(phi - PI*delta*2/period);
+			//Sample trajectory at T_{n+1}
+			float x2 = xr0 + Rr0* sin(phi + PI*delta*2/period);
+			float y2 = 0;
+			float z2 = zr0 + Rr0*cos(phi + PI*delta*2/period);
 
-		float x2 = xr0 + Rr0* sin(phi + PI*delta*2/period);
-		float y2 = 0;
-		float z2 = zr0 + Rr0*cos(phi + PI*delta*2/period);
+			//Get desired theta values using the inverse kinematics of the robot arm
+			InverseK(x, y, z, 10.0, tdn[0], tdn[1], tdn[2]);
+			InverseK(x0, y0, z0, 10.0, td0[0], td0[1], td0[2]);
+			InverseK(x2, y2, z2, 10.0, td[0], td[1], td[2]);
 
-		InverseK(x0, y0, z0, 10.0, &td10, &td20, &td30);
-		InverseK(x2, y2, z2, 10.0, &td1, &td2, &td3);
-
-	    td1dot = (td1 - td10)/delta/2;
-	    td2dot = (td2 - td20)/delta/2;
-	    td3dot = (td3 - td30)/delta/2;
-
-	    td1ddot = (td1 - 2*td1n + td10)/(delta*delta);
-	    td2ddot = (td2 - 2*td2n + td20)/(delta*delta);
-	    td3ddot = (td3 - 2*td3n + td30)/(delta*delta);
-
+			//Calculate thetaDot and thetaDoubleDot using discretization of derivative
+			//and double derivative
+			for (int i = 0; i < 3; ++i)
+			{
+				tdDot[i] = (td[i]-td0[i])/delta/2;
+				tdDoubleDot[i] = (td[i] - 2*tdn[i] + td0[i])/(delta*delta);
+			}
+		}
 	}
+	else if(c=='i') //For infinity trajectory
+	{
+		if( time <= 100*period)
+		{
+			//Sample trajectory at T_n
+			x = xr0 + Rr0 * scale *cos(phi);
+			y = 0;
+			z = zr0 + Rr0 * scale*sin(2*phi)/2;
+
+			//Sample trajectory at T_{n-1}
+			float x0 = xr0 + Rr0 * scale*cos(phi - PI*delta*2/period);
+			y0 = 0;
+			float z0 = zr0 + Rr0 *scale*sin(2*(phi - PI*delta*2/period))/2;
+
+			//Sample trajectory at T_{n+1}
+			float x2 = xr0 + Rr0*scale*cos(phi + PI*delta*2/period);
+			float y2 = 0;
+			float z2 = zr0 + Rr0*scale*sin(2*(phi + PI*delta*2/period))/2;
+
+			//Get desired theta values using the inverse kinematics of the robot arm
+			InverseK(x, y, z, 10.0, tdn[0], tdn[1], tdn[2]);
+			InverseK(x0, y0, z0, 10.0, td0[0], td0[1], td0[2]);
+			InverseK(x2, y2, z2, 10.0, td[0], td[1], td[2]);
+
+			//Calculate thetaDot and thetaDoubleDot using discretization of derivative
+			//and double derivative
+			for (int i = 0; i < 3; ++i)
+			{
+				tdDot[i] = (td[i]-td0[i])/delta/2;
+				tdDoubleDot[i] = (td[i] - 2*tdn[i] + td0[i])/(delta*delta);
+			}			
+		}
+	}
+	else //Otherwise throw an error
+		printf("Trajectory Name unrecognized\n");
 }
 
-static inline void infinity(float t)
-{
-	float time = t*0.001;
-	float period = 10;
-	float phi = 2*PI*time/period;
-
-	float delta = 0.005;
-	float scale = 2/(3 - cos(2*phi));
-
-	if( time <= 100*period)
-	{
-		x = xr0 + Rr0 * scale *cos(phi);
-		y = 0;
-		z = zr0 + Rr0 * scale*sin(2*phi)/2;
-		InverseK(x, y, z, 10.0, &td1n, &td2n, &td3n);
-
-		float x0 = xr0 + Rr0 * scale*cos(phi - PI*delta*2/period);
-		y0 = 0;
-		float z0 = zr0 + Rr0 *scale*sin(2*(phi - PI*delta*2/period))/2;
-
-		InverseK(x0, y0, z0, 10.0, &td10, &td20, &td30);
-
-		float x2 = xr0 + Rr0*scale*cos(phi + PI*delta*2/period);
-		float y2 = 0;
-		float z2 = zr0 + Rr0*scale*sin(2*(phi + PI*delta*2/period))/2;
-
-		InverseK(x2, y2, z2, 10.0, &td1, &td2, &td3);
-
-		td1dot = (td1 - td10)/delta/2;
-		td2dot = (td2 - td20)/delta/2;
-		td3dot = (td3 - td30)/delta/2;
-
-		td1ddot = (td1 - 2*td1n + td10)/(delta*delta);
-		td2ddot = (td2 - 2*td2n + td20)/(delta*delta);
-		td3ddot = (td3 - 2*td3n + td30)/(delta*delta);
-	}
-
-
-
-}
-
-static inline float feedForwardController(char joint , float thetamotor, float thetamotor_dot, PID *ctrl, float* curr_error, float* prev_error, float *total_error)
+//Combined function for controlling all the joints
+//Uses feedforward and PID controller
+//Returns the torque output which is sent to each motor 
+static inline float Controller(char joint , float thetamotor, float thetamotor_dot, PID *ctrl)
 {
 	//Use the PID controller close to desired angles
 	float tau = 0;
@@ -307,35 +286,37 @@ static inline float feedForwardController(char joint , float thetamotor, float t
 
 	if(fabs(*curr_error) < 0.2)
 	{
+		//To Do:
+		//Add a switch case such that the feedforward can be turned on and off 
 		//For joint 1
 		if(joint=='1')
 		{
 			//Integration error
-			*curr_error = (td10 - thetamotor);
-			*total_error = *total_error + (*prev_error + *curr_error)*.001/2;
-			int_error = *total_error;
-			tau = ctrl->Kp*(td10-thetamotor) + ctrl->Kd*(td1dot - thetamotor_dot) + ctrl->Ki*(int_error); //J2*td1ddot
-			*prev_error = *curr_error;
+			jointError[0].curr_error = (td0[0] - thetamotor);
+			jointError[0].total_error = jointError[0].total_error + (jointError[0].prev_error + jointError[0].curr_error)*.001/2;
+			int_error = jointError[0].total_error;
+			tau = J1*tdDoubleDot[0] + ctrl->Kp*(td0[0]-thetamotor) + ctrl->Kd*(tdDot[0] - thetamotor_dot) + ctrl->Ki*(int_error); 
+			jointError[0].prev_error = jointError[0].curr_error;
 		}
 		//For joint 2
 		else if(joint=='2')
 		{
 			//Integration error
-			*curr_error = (td20 - thetamotor);
-			*total_error = *total_error + (*prev_error + *curr_error)*.001/2;
-			int_error = *total_error;
-			tau = ctrl->Kp*(td20-thetamotor) + ctrl->Kd*(td2dot - thetamotor_dot) + ctrl->Ki*(int_error);
-			*prev_error = *curr_error;
+			jointError[1].curr_error = (td0[1] - thetamotor);
+			jointError[1].total_error = jointError[1].total_error + (jointError[1].prev_error + jointError[1].curr_error)*.001/2;
+			int_error = jointError[1].total_error;
+			tau = J1*tdDoubleDot[1] + ctrl->Kp*(td0[1]-thetamotor) + ctrl->Kd*(tdDot[1] - thetamotor_dot) + ctrl->Ki*(int_error); 
+			jointError[1].prev_error = jointError[1].curr_error;
 		}
 		//For joint 3
 		else if(joint=='3')
 		{
 			//Integration error
-			*curr_error = (td30 - thetamotor);
-			*total_error = *total_error + (*prev_error + *curr_error)*.001/2;
-			int_error = *total_error;
-			tau = ctrl->Kp*(td30-thetamotor) + ctrl->Kd*(td3dot - thetamotor_dot) + ctrl->Ki*(int_error);
-			*prev_error = *curr_error;
+			jointError[2].curr_error = (td0[2] - thetamotor);
+			jointError[2].total_error = jointError[2].total_error + (jointError[2].prev_error + jointError[2].curr_error)*.001/2;
+			int_error = jointError[2].total_error;
+			tau = J1*tdDoubleDot[2] + ctrl->Kp*(td0[2]-thetamotor) + ctrl->Kd*(tdDot[2] - thetamotor_dot) + ctrl->Ki*(int_error); 
+			jointError[2].prev_error = jointError[2].curr_error;
 		}
 	}
 	else
@@ -344,20 +325,20 @@ static inline float feedForwardController(char joint , float thetamotor, float t
 		*total_error = 0;
 		if(joint=='1')
 		{
-			tau = J1*td1ddot + ctrl->Kp*(td10-thetamotor) + ctrl->Kd*(td1dot - thetamotor_dot);
+			tau = J1*tdDoubleDot[0] + ctrl->Kp*(td0[0]-thetamotor) + ctrl->Kd*(tdDot[0] - thetamotor_dot);
 		}
 		else if(joint=='2')
 		{
-			tau = J2*td2ddot + ctrl->Kp*(td20-thetamotor) + ctrl->Kd*(td2dot - thetamotor_dot);
+			tau = J2*tdDoubleDot[1] + ctrl->Kp*(td0[1]-thetamotor) + ctrl->Kd*(tdDot[1] - thetamotor_dot);
 		}
 		else if(joint=='3')
 		{
-			tau = J3*td3ddot + ctrl->Kp*(td30-thetamotor) + ctrl->Kd*(td3dot - thetamotor_dot);
+			tau = J3*tdDoubleDot[2] + ctrl->Kp*(td0[2]-thetamotor) + ctrl->Kd*(tdDot[2] - thetamotor_dot);
 		}
 	}
 
 	//Saturate output torque
-	if(tau>5)
+	if(tau > 5)
 		return 5.0;
 	else if(tau < -5)
 		return -5.0;
@@ -365,104 +346,23 @@ static inline float feedForwardController(char joint , float thetamotor, float t
 		return tau;
 }
 
-/*
-static inline float feedForwardController(char joint , float thetamotor, float thetamotor_dot, PID *ctrl, float* curr_error, float* prev_error, float *total_error)
-{
-	//Integration error
-	*curr_error = (DesiredValue[0] - thetamotor);
-	*total_error = *total_error + (*prev_error + *curr_error)*.001/2;
-	float int_error = *total_error;
-
-	//Use the PID controller close to desired angles
-	float tau = 0;
-	if(fabs(*curr_error) < 0.2)
-	{
-		//For joint 1
-		if(joint=='1')
-		{
-			tau = J1*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot) + ctrl->Ki*(int_error);
-		}
-		//For joint 2
-		else if(joint=='2')
-		{
-			tau = J2*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot) + ctrl->Ki*(int_error);
-		}
-		//For joint 3
-		else if(joint=='3')
-		{
-			tau = J3*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot) + ctrl->Ki*(int_error);
-		}
-	}
-	else
-	{
-		//Use PD controller for everything else
-		*total_error = 0;
-		if(joint=='1')
-		{
-			tau = J1*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot);
-		}
-		else if(joint=='2')
-		{
-			tau = J2*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot);
-		}
-		else if(joint=='3')
-		{
-			tau = J3*DesiredValue[2] + ctrl->Kp*(DesiredValue[0]-thetamotor) + ctrl->Kd*(DesiredValue[1] - thetamotor_dot);
-		}
-	}
-
-	*prev_error = *curr_error;
-
-	//Saturate output torque
-	if(tau>5)
-		return 5.0;
-	else if(tau < -5)
-		return -5.0;
-	else
-		return tau;
-}*/
-
 
 // This function is called every 1 ms
 void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float *tau2,float *tau3, int error) {
 
+	//Use the filter to determine joint velocity from encoder values
 	float theta1motor_dot = velocityFilter(theta1motor, &filter1);
 	float theta2motor_dot = velocityFilter(theta2motor, &filter2);
 	float theta3motor_dot = velocityFilter(theta3motor, &filter3);
 
-	/*if((mycount%5000)==0)
-	{
-		if(theta1motor_des==0)
-		{
-			theta1motor_des = PI/6;
-			theta2motor_des = PI/6;
-			theta3motor_des = PI/6;
-		}
-		else
-		{
-			theta1motor_des = 0;
-			theta2motor_des = 0;
-			theta3motor_des = 0;
-		}
-	}*/
-
-	//trajectoryGenerator(mycount);
-
-	//circleTrajectory(mycount);
-
-	infinity(mycount);
+	trajectoryGenerator(mycount,'i');
 
 	//Motor torque limitation(Max: 5 Min: -5)
 
-	//PID control for the joints
-//	*tau1 = PIDController(theta1motor, theta1motor_des, theta1motor_dot, &ctrl1, &curr_error1, &prev_error1, &total_error1);
-//	*tau2 = PIDController(theta2motor, theta2motor_des, theta2motor_dot, &ctrl2, &curr_error2, &prev_error2, &total_error2);
-//	*tau3 = PIDController(theta3motor, theta3motor_des, theta3motor_dot, &ctrl3, &curr_error3, &prev_error3, &total_error3);
-
-	//Feedforward control for the joints
-	*tau1 = feedForwardController('1',theta1motor, theta1motor_dot, &ctrl1, &curr_error1, &prev_error1, &total_error1);
-	*tau2 = feedForwardController('2',theta2motor, theta2motor_dot, &ctrl2, &curr_error2, &prev_error2, &total_error2);
-	*tau3 = feedForwardController('3',theta3motor, theta3motor_dot, &ctrl3, &curr_error3, &prev_error3, &total_error3);
+	//Control input for the joints
+	*tau1 = Controller('1',theta1motor, theta1motor_dot, &ctrl1);
+	*tau2 = Controller('2',theta2motor, theta2motor_dot, &ctrl2);
+	*tau3 = Controller('3',theta3motor, theta3motor_dot, &ctrl3);
 
 	// save past states
 	if ((mycount%50)==0) {
@@ -486,9 +386,6 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 		GpioDataRegs.GPBTOGGLE.bit.GPIO60 = 1; // Blink LED on Emergency Stop Box
 	}
 
-
-
-
 	Simulink_PlotVar1 = td2;
 	Simulink_PlotVar2 = theta2motor;
 	Simulink_PlotVar3 = td3;
@@ -497,18 +394,13 @@ void lab(float theta1motor,float theta2motor,float theta3motor,float *tau1,float
 	mycount++;
 	newCount++;
 
-	float q1 = theta1motor;
-	float q2 = theta2motor;
-	float q3 = theta3motor;
-
-	x = 20 * cos(q1) * sin( PI/4 + q2/2 - q3/2) * sin( PI/4 + q2/2 + q3/2);
-	y = 20 * sin(q1) * sin(PI/4 + q2/2 - q3/2) * sin(PI/4 + q2/2 + q3/2);
-	z = 10 * (1 + cos(q2) - sin(q3));
-
-
-	invKinematics(x,y,z,thetas);
-
-
+	// float q1 = theta1motor;
+	// float q2 = theta2motor;
+	// float q3 = theta3motor;
+	// x = 20 * cos(q1) * sin( PI/4 + q2/2 - q3/2) * sin( PI/4 + q2/2 + q3/2);
+	// y = 20 * sin(q1) * sin(PI/4 + q2/2 - q3/2) * sin(PI/4 + q2/2 + q3/2);
+	// z = 10 * (1 + cos(q2) - sin(q3));
+	// invKinematics(x,y,z,thetas);
 
 }
 
