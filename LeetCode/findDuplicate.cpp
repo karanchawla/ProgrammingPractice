@@ -29,8 +29,8 @@ int main()
     v.push_back(1);
     v.push_back(2);
     v.push_back(2);
-    
-    cout << sol.findDuplicate(v);
+
+    cout << *(v.end()-1);
 
     return 0;
 }
