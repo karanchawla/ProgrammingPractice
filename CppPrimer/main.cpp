@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include "chapter6.h"
 
 using namespace std;
 
@@ -239,25 +240,38 @@ int main(int argc, char *argv[])
 //           cin >> rsp;
 //   } while (tolower(rsp[0]) == 'y');
 
-//    5.20
-    string str;
-    string prev_str;
-    int flag=0;
-    while(cin >> str)
-    {
-        char c = str[0];
-        if(prev_str[0]==str[0] && isupper(c))
-        {
-            cout << "The repeated word is:" << str << endl;
-            flag = 1;
-            break;
+//    5.20 and 5.21
+//    string str;
+//    string prev_str;
+//    int flag=0;
+//    while(cin >> str)
+//    {
+//        char c = str[0];
+//        if(prev_str[0]==str[0] && isupper(c))
+//        {
+//            cout << "The repeated word is:" << str << endl;
+//            flag = 1;
+//            break;
 
-        }
-        prev_str = str;
-    }
+//        }
+//        prev_str = str;
+//    }
 
-    if(flag==0)
-        cout << "No word was repeated." << endl;
+//    if(flag==0)
+//        cout << "No word was repeated." << endl;
+
+//////////////////////////////////////////////////Chapter 6///////////////////////////////////////////////////////////////////
+
+//    6.3
+//    cout << fact(-5) << endl;
+
+//    6.7
+//    for(int i=0;i<10;i++)
+//        cout << func();
+
+//    6.21
+    int i = 7;
+    cout << new_func(6,&i) << endl;
 
 
     return 0;
