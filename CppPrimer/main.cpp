@@ -2,7 +2,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "chapter6.h"
+//#include "chapter6.h"
+#include "salesdata.h"
+#include "person.h"
 
 using namespace std;
 
@@ -270,10 +272,128 @@ int main(int argc, char *argv[])
 //        cout << func();
 
 //    6.21
-    int i = 7;
-    cout << new_func(6,&i) << endl;
+//    int i = 7;
+//    cout << new_func(6,&i) << endl;
+
+//    6.22
+//    int p1 = 10;
+//    int p2 = 11;
+
+    //////////////////////////////////////////////////Chapter 7///////////////////////////////////////////////////////////////////
+//  7.1
+
+//        Sales_data total;
+//        if(cin >> total.bookNo >> total.units_sold >> total.revenue)
+//        {
+//            Sales_data temp;
+//            while(cin >> temp.bookNo >> temp.units_sold >> temp.revenue)
+//            {
+//                if(total.bookNo == temp.bookNo)
+//                {
+//                    total.units_sold += temp.units_sold;
+//                    total.revenue += temp.revenue;
+//                }
+//                else
+//                {
+//                    cout << total.bookNo << total.units_sold << total.revenue << endl;
+//                    total = temp;
+//                }
+//            }
+//        }
+//        else
+//        {
+//            cerr << "No data" << endl;
+//            return -1;
+//        }
+
+//    7.2 and 7.3
+//    Sales_data total;
+//    if(cin >> total.bookNo >> total.units_sold >> total.revenue)
+//    {
+//        Sales_data temp;
+//        while(cin >> temp.bookNo >> temp.units_sold >> temp.revenue)
+//        {
+//            if(total.isbn()==temp.isbn())
+//            {
+//                total.combine(temp);
+//            }
+//            else
+//            {
+//                cout << total.bookNo << total.units_sold << total.revenue << endl;
+//                total = temp;
+
+//            }
+//        }
+//         cout << total.bookNo << " " << total.units_sold << " " << total.revenue << endl;
+//    }
+//    else
+//    {
+//        cerr << "No input data" << endl;
+//    }
+
+//    7.5
+//    Person me;
+//    cout << me.get_address() << endl;
+
+//    Sales_data total;
+//        if (read(std::cin, total))
+//        {
+//            Sales_data trans;
+//            while (read(std::cin, trans)) {
+//                if (total.isbn() == trans.isbn())
+//                    total.combine(trans);
+//                else {
+//                    print(std::cout, total) << std::endl;
+//                    total = trans;
+//                }
+//            }
+//            print(std::cout, total) << std::endl;
+//        }
+//        else
+//        {
+//            std::cerr << "No data?!" << std::endl;
+//            return -1;
+//        }
+
+//    7.11
+//    Sales_data obj1;
+//    string book_no = "abc";
+//    Sales_data obj2(book_no);
+//    Sales_data obj3(book_no,10,100);
+//    Sales_data obj4(std::cin);
+
+//    7.13
+//    Sales_data total(std::cin);
+//    if(!total.isbn().empty())
+//    {
+//        std::istream &is = std::cin;
+//        while(is)
+//        {
+//            Sales_data trans(is);
+//            if(total.isbn()==trans.isbn())
+//            {
+//                total.combine(trans);
+//            }
+//            else
+//            {
+//                total = trans;
+//            }
+//        }
+//    }
+//    else
+//    {
+//        std::cerr << "No data" << endl;
+//        return -1;
+//    }
+
+//    7.15
+//    Person p1;
+//    Person p2("Karan","404 S");
+//    Person p3("Karan");
+//    Person p4(cin);
 
 
     return 0;
+
 }
 
