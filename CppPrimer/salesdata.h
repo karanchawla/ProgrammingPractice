@@ -72,6 +72,7 @@ private:
     std::string bookNo;
     unsigned units_sold = 0;
     double revenue = 0.0;
+    inline double avg_price() const;
 };
 
 Sales_data add(const Sales_data&, const Sales_data&);
@@ -112,6 +113,14 @@ Sales_data add(const Sales_data &lhs, const Sales_data &rhs)
     Sales_data sum = lhs;
     sum.combine(rhs);
     return sum;
+}
+
+inline double Sales_data::avg_price() const
+{
+    if(units_sold>0)
+        return revenue/units_sold;
+    else
+        return 0;
 }
 
 #endif

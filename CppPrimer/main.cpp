@@ -5,6 +5,7 @@
 //#include "chapter6.h"
 #include "salesdata.h"
 #include "person.h"
+#include "ex7_23.h"
 
 using namespace std;
 
